@@ -60,40 +60,7 @@ int multiply_return(const int a, const int b) {
   std::cout << a << " * " << b << " = " << res << std::endl;
   return res;
 }
-void NetsShuffle(std::vector< std::vector<int> >& nets_cluster, const int threadsize, const int netsize, const std::vector<int> randVector){
-    nets_cluster.clear();
-    nets_cluster.resize(threadsize);
-    std::vector<int>::const_iterator iter = randVector.begin();
-    for(int i = 0;i < threadsize;i++){
-        if(i != threadsize - 1){
-            nets_cluster[i].assign(iter + i*netsize,iter + i*netsize + netsize);
-        }
-        else{
-            nets_cluster[i].assign(iter + i*netsize,randVector.end());
-        }
-    }
-}
-std::vector<int> randVector(size_t num,bool OutOrder){
-    std::vector<int> result;
-    result.clear();
-    result.reserve(num);
-    for(int i = 0; i < num;i++)
-        result.push_back(i);
-    if(OutOrder){
-        //srand( (unsigned int)time(nullptr) );
-        srand(0);
-        int p1,p2,temp;
-        while(--num){
-            p1 = num;
-            p2 = rand()%num;
-            temp = result[p1];
-            result[p1] = result[p2];
-            result[p2] = temp;
-        }
-    }
 
-    return result;
-}
 void parallelAdd(size_t num){
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
@@ -114,15 +81,6 @@ int main(int argc,char* argv[]) {
   std::chrono::high_resolution_clock::time_point end;
 
   std::chrono::duration<double> elapse_time;
-  if (0) {
-    #undef TP
-  }
-#ifdef TP
-  std::cout << "hello tp!" << std::endl;
-#else
-  std::cout << "tp gone!" << std::endl;
-#endif
-
 #if 1
   int task_num   = 8;
   int loop = 1;

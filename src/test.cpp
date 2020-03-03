@@ -7,6 +7,7 @@ int task_done = 0;
 pthread_mutex_t lock;
 pthread_cond_t  cond_lock;
 int thread_num = 4;
+int index = 0;
 size_t tot_bin_cnt = 262144;
 
 
@@ -67,12 +68,22 @@ void merge2 (void* args) {
     }
     pthread_mutex_unlock(&lock);//unlock
 }
+int get_idx () {
+    int ret = 0;
+    pthread_mutex_lock(&lock);//lock
+    ret = index;
+    index = (index + 1) % thread_num;
+    pthread_mutex_unlock(&lock);//unlock
+    return  ret;
+}
 void parallelAdd(size_t num){
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    auto idx = get_idx();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
     pthread_mutex_lock(&lock);//lock
     task_done++;
-    std::cout << task_done << std::endl;
+    //std::cout << task_done << std::endl;
     if(task_done == thread_num) {
         pthread_cond_signal(&cond_lock);
         //std::cout << "releasing..." << std::endl;
@@ -80,6 +91,22 @@ void parallelAdd(size_t num){
     pthread_mutex_unlock(&lock);//unlock
 
 }
+void parallelAdd2(size_t num){
+    //auto idx = get_idx();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    pthread_mutex_lock(&lock);//lock
+    task_done++;
+    //std::cout << task_done << std::endl;
+    if(task_done == thread_num) {
+        pthread_cond_signal(&cond_lock);
+        //std::cout << "releasing..." << std::endl;
+    }
+    pthread_mutex_unlock(&lock);//unlock
+
+}
+
 int main(int argc,char* argv[]) {
 
   size_t loopcount = 1;
@@ -90,15 +117,6 @@ int main(int argc,char* argv[]) {
   std::cout << "thread_num: " << thread_num << "\tloop: " << loopcount << std::endl;
 
 
-  bin_partition_by_random = random_partition (tot_bin_cnt, thread_num);
-  bin_area_share.resize (thread_num);
-  bin_area.resize (tot_bin_cnt);
-  for (auto idx = 0; idx < thread_num; ++idx) {
-      std::vector<FMC_MODULE> temp(tot_bin_cnt);
-      bin_area_share[idx] = temp;
-  }
-  std::vector< std::pair<double, double> > temp (thread_num, std::make_pair (0, 0));
-  bin_area_share2.resize (tot_bin_cnt, temp);
 
   // Initialize pool
   ThreadPool pool(thread_num);
@@ -116,7 +134,7 @@ int main(int argc,char* argv[]) {
         for (int i = 0; i < thread_num; ++i) {
             count[i] = i;
             //std::cout << count[i] << std::endl;
-            pool.submit(merge, &count[i]);
+            pool.submit(parallelAdd, count[i]);
         }
 
         pthread_mutex_lock(&lock);
@@ -127,7 +145,7 @@ int main(int argc,char* argv[]) {
         pthread_mutex_unlock(&lock);
     }
    tp_timer::time_end (tp_time);
-   std::cout << "merge1: " << tp_time << std::endl;
+   std::cout << "with one more lock: " << tp_time << std::endl;
   }
   {
     tp_timer::time_start (tp_time);
@@ -140,7 +158,7 @@ int main(int argc,char* argv[]) {
         for (int i = 0; i < thread_num; ++i) {
             count[i] = i;
             //std::cout << count[i] << std::endl;
-            pool.submit(merge2, &count[i]);
+            pool.submit(parallelAdd2, count[i]);
         }
 
         pthread_mutex_lock(&lock);
@@ -151,7 +169,7 @@ int main(int argc,char* argv[]) {
         pthread_mutex_unlock(&lock);
     }
    tp_timer::time_end (tp_time);
-   std::cout << "merge2: " << tp_time << std::endl;
+   std::cout << "without extra lock: " << tp_time << std::endl;
   }
 
 
